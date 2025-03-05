@@ -154,12 +154,18 @@
     });
 
     // Function to update the cart total
-    function updateCart() {
-        let totalItems = cart.length;
-        let totalPrice = cart.reduce((sum, item) => sum + parseFloat(item.price.replace("$", "")), 0);
+function updateCart() {
+    let totalItems = cart.reduce((sum, item) => sum + item.quantity, 0); // Count total quantity of all items
 
-        $("#cart-total").html(`${totalItems} 件商品 $${totalPrice.toFixed(2)}`);
+    if (totalItems > 0) {
+        $(".badge").removeClass("hidden").text(totalItems); // Show badge with item count
+    } else {
+        $(".badge").addClass("hidden"); // Hide badge if no items in cart
     }
+
+    let totalPrice = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+    $("#cart-total").html(`${totalItems} 件商品 $${totalPrice.toFixed(2)}`);
+}
 
     // Handle broken images
     function imgError(image) {
@@ -225,6 +231,11 @@ $(document).on("click", ".remove-item", function() {
 
     // Open Side Cart on Click
     $("#shopping-cart-list").on("click", function() {
+        openSideCart();
+        return false;
+    });
+    // PC Version Cart Icon Click Event
+    $("#cart").on("click", function() {
         openSideCart();
         return false;
     });
