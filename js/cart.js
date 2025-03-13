@@ -92,9 +92,17 @@
 
                         $("#item_wrapper").html(productDetailsHTML);
 
-                        // Hide content-wrapper and ensure item_wrapper is visible
-                        $("#content-wrapper").fadeOut("fast", function() {
+                        // Hide content-wrapper and show item_wrapper with smooth scrolling
+                      /*    $("#content-wrapper").fadeOut("fast", function() {
                             $("#item_wrapper").fadeIn("fast");
+                        });*/
+                       $("#content-wrapper").fadeOut("fast", function() {
+                            $("#item_wrapper").fadeIn("fast", function() {
+                                // Scroll to #item_wrapper after it becomes visible
+                                $("html, body").animate({
+                                    scrollTop: $("#item_wrapper").offset().top
+                                }, 600); // Adjust speed if needed
+                            });
                         });
 
                         // Event listener for Back to Home button
@@ -200,14 +208,14 @@ function updateSideCart() {
                     <div class="cart-item-info">
                         <span class="cart-item-name">${item.name}</span>
                         <span class="cart-item-quantity">數量: ${item.quantity}</span>
-                        <span class="cart-item-price">總價: $${item.totalPrice.toFixed(2)}</span>
+                        <span class="cart-item-price">總價: ${item.totalPrice.toFixed(2)}</span>
                     </div>
                     <span class="remove-item" data-index="${index}">❌</span>
                 </div>
             `);
         });
 
-        $("#side-cart-total").text(`$${total.toFixed(2)}`);
+        $("#side-cart-total").text(`${total.toFixed(2)}`);
     }
 }
 
@@ -239,3 +247,57 @@ $(document).on("click", ".remove-item", function() {
         openSideCart();
         return false;
     });
+
+function generateOrderId() {
+        // Get current date
+        let now = new Date();
+        let year = now.getFullYear();
+        let month = now.getMonth() + 1; // Get month (1-based)
+        let orderNumber = Math.floor(100000 + Math.random() * 900000); // Random 6-digit number
+
+        // Generate the order prefix based on months since Jan 2025
+        let monthPrefix = String.fromCharCode(65 + (month - 1)); // A = Jan 2025, B = Feb 2025, ..., M = Jan 2026
+
+        return `A${monthPrefix}${orderNumber}`;
+}
+
+
+$("#checkout-btn").click(function() {
+        let orderId = generateOrderId();
+        let time = new Date().toISOString();
+        let memberId = localStorage.getItem("memberId") || null; // Retrieve memberId if available, otherwise null
+        let items = cart.map(item => `${item.name} x${item.quantity}`);
+        let totalPrice = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+   
+        let orderData = {
+            time: time,
+            memberId: memberId,
+            orderId: orderId,
+            items: items,
+            total: totalPrice.toFixed(2)
+        };
+
+        console.log("Sending Order Data:", orderData); // Debugging log
+
+        // Send data to GCF endpoint
+        fetch("https://mrbean-website-save-to-sheet-545199463340.us-central1.run.app", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(orderData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Order recorded:", data);
+            
+            // Delay before redirecting
+            setTimeout(() => {
+                window.location.href = `https://the2dge.github.io/beanMock/checkout/?MerchantTradeNo=${orderId}`;
+            }, 2000); // Redirect after 2 seconds
+        })
+        .catch(error => {
+            console.error("Error sending order:", error);
+            alert("結帳時發生錯誤，請稍後再試。");
+        });
+});
